@@ -1,21 +1,22 @@
 import mongoose, { Document } from "mongoose";
 
 export interface UserType extends Document {
-    _id?: string;
     avatarUrl: string;
     repos: string;
     followers: string;
     followings: string;
-    bio: string;
+    bio: string | null;
     name: string;
     email: string;
     url: string;
     userId: string;
+    company: string | null;
+    blog: string;
+    location: string | null;
     jwtToken?: string;
 }
 
 const UserSchema = new mongoose.Schema({
-    _id: String,
     avatarUrl: String,
     repos: String,
     followers: String,
@@ -25,6 +26,9 @@ const UserSchema = new mongoose.Schema({
     email: String,
     url: String,
     userId: String,
+    company: String,
+    blog: String,
+    location: String,
     jwtToken: String,
 });
 

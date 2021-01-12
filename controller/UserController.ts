@@ -36,43 +36,83 @@ export const gitLogin = async (
         ).then((res) => res.data);
 
         const token = res?.split("&")[0]?.split("=")[1];
-
         // 토큰으로 user 정보 획득
-        const gitUser = await Axios.get("https://api.github.com/user", {
+        const {
+            avatar_url: avatarUrl,
+            public_repos: repos,
+            followers,
+            following: followings,
+            bio,
+            name,
+            email,
+            html_url: url,
+            login: userId,
+            company,
+            blog,
+            location,
+        } = await Axios.get("https://api.github.com/user", {
             headers: {
                 Authorization: `token ${token}`,
             },
         }).then((res) => res.data);
 
-        const existUser = await User.findOne({ email: gitUser.email });
+        const existUser = await User.findOne({
+            email,
+        });
+
+        // 유저가 존재한다면
         if (existUser) {
-            // 유저가 존재한다면
+            // 최신 정보와 비교해 추가
+            const updateUser = await User.findOneAndUpdate(
+                {
+                    email,
+                },
+                {
+                    avatarUrl,
+                    repos,
+                    followers,
+                    followings,
+                    bio,
+                    name,
+                    email,
+                    url,
+                    userId,
+                    company,
+                    blog,
+                    location,
+                }
+            );
             const jwtToken = jwt.sign(
-                { email: existUser.email },
+                { email: updateUser?.email },
                 process.env.JWT_SECRET as string
             );
-            req.user = existUser;
-            (req.user as UserType).jwtToken = jwtToken;
+            (req as any).user = updateUser;
+            ((req as any).user as UserType).jwtToken = jwtToken;
+            updateUser?.save();
             next();
         } else {
             // 유저가 없다면
             const user = await User.create({
-                avatarUrl: gitUser.avatar_url,
-                repos: gitUser.public_repos,
-                followers: gitUser.followers,
-                followings: gitUser.following,
-                bio: gitUser.bio,
-                name: gitUser.name,
-                email: gitUser.email,
-                url: gitUser.url,
-                userId: gitUser.login,
+                avatarUrl,
+                repos,
+                followers,
+                followings,
+                bio,
+                name,
+                email,
+                url,
+                userId,
+                company,
+                blog,
+                location,
             });
             const jwtToken = jwt.sign(
                 { email: user.email },
                 process.env.JWT_SECRET as string
             );
-            req.user = user;
-            (req.user as UserType).jwtToken = jwtToken;
+            (req as any).user = user;
+            ((req as any).user as UserType).jwtToken = jwtToken;
+            user.save();
             next();
         }
     } catch (err) {
@@ -82,11 +122,11 @@ export const gitLogin = async (
 };
 
 export const SendToAuth = (req: Request, res: Response) => {
-    const { jwtToken } = req.user as UserType;
+    const { jwtToken } = (req as any).user as UserType;
     return res
         .cookie("git_auth", jwtToken, option(true))
         .status(200)
-        .json(req.user);
+        .json((req as any).user);
 };
 
 // 토큰이 있는지 없는지 확인
@@ -94,38 +134,88 @@ export const SendToAuth = (req: Request, res: Response) => {
 export const checkAuth = (req: Request, res: Response) => {
     const token = req.cookies.git_auth;
     if (token === undefined || token === "") {
-        return res.json({ message: "User not found token is empty" });
+        return;
     }
 
     jwt.verify(
         token,
         process.env.JWT_SECRET as string,
-        (err: any, decoded: any) => {
+        async (err: any, decoded: any) => {
             if (err) {
                 return res.status(500).json({ message: "token decode 실패" });
             }
-            User.findOne({ email: decoded.email }, (err: any, user: any) => {
-                if (err) {
-                    return res.json("유저가 존재하지 않습니다.");
+            await User.findOne(
+                { email: decoded.email },
+                (err: any, user: any) => {
+                    if (err) {
+                        return res.json("유저가 존재하지 않습니다.");
+                    }
+                    if (!user) {
+                        return res
+                            .status(400)
+                            .json("일치하는 유저가 없습니다.");
+                    }
+                    if (user) {
+                        (req as any).user = user;
+                        ((req as any).user as UserType).jwtToken = token;
+                        return res.status(200).json(user);
+                    }
                 }
-                if (!user) {
-                    return res.status(400).json("일치하는 유저가 없습니다.");
-                }
-                if (user) {
-                    req.user = user;
-                    (req.user as UserType).jwtToken = token;
-                    return res.status(200).json(user);
-                }
-            });
+            );
         }
     );
 };
 
 export const logout = (req: Request, res: Response) => {
+    (req as any).token = "";
+    return res.cookie("git_auth", "", option(false)).status(200).json("clear!");
+};
+
+export const recentUpdate = async (req: Request, res: Response) => {
+    const { username } = req.body;
     try {
-        res.status(200).cookie("git_auth", "", option(false));
+        const {
+            avatar_url: avatarUrl,
+            public_repos: repos,
+            followers,
+            following: followings,
+            bio,
+            name,
+            email,
+            html_url: url,
+            login: userId,
+            company,
+            blog,
+            location,
+        } = await Axios.get(
+            `https://api.github.com/users/${username}`,
+            {}
+        ).then((res) => res.data);
+
+        // 최신 정보와 비교해 추가
+        const updateUser = await User.findOneAndUpdate(
+            {
+                userId: username,
+            },
+            {
+                avatarUrl,
+                repos,
+                followers,
+                followings,
+                bio,
+                name,
+                email,
+                url,
+                userId,
+                company,
+                blog,
+                location,
+            }
+        );
+        updateUser?.save();
+        res.status(200).json(updateUser);
     } catch (err) {
         console.error(err);
-        res.status(400).json(err);
+        res.status(400).json("오류");
     }
 };
