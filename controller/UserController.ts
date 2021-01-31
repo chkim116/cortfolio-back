@@ -86,8 +86,8 @@ export const gitLogin = async (
                 { email: updateUser?.email },
                 process.env.JWT_SECRET as string
             );
-            (req as any).user = updateUser;
-            ((req as any).user as UserType).jwtToken = jwtToken;
+            (req as any).user = updateUser as UserType;
+            (req as any).user.jwtToken = jwtToken;
             updateUser?.save();
             next();
         } else {
@@ -111,7 +111,7 @@ export const gitLogin = async (
                 process.env.JWT_SECRET as string
             );
             (req as any).user = user;
-            ((req as any).user as UserType).jwtToken = jwtToken;
+            (req as any).user.jwtToken = jwtToken;
             user.save();
             next();
         }
@@ -122,7 +122,7 @@ export const gitLogin = async (
 };
 
 export const SendToAuth = (req: Request, res: Response) => {
-    const { jwtToken } = (req as any).user as UserType;
+    const { jwtToken } = (req as any).user;
     return res
         .cookie("git_auth", jwtToken, option(true))
         .status(200)
@@ -157,7 +157,7 @@ export const checkAuth = (req: Request, res: Response) => {
                     }
                     if (user) {
                         (req as any).user = user;
-                        ((req as any).user as UserType).jwtToken = token;
+                        (req as any).user.jwtToken = token;
                         return res.status(200).json(user);
                     }
                 }
@@ -167,7 +167,6 @@ export const checkAuth = (req: Request, res: Response) => {
 };
 
 export const logout = (req: Request, res: Response) => {
-    (req as any).token = "";
     return res.cookie("git_auth", "", option(false)).status(200).json("clear!");
 };
 
