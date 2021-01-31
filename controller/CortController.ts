@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import Cortfolio from "../model/Cortfolio";
 
 export const getCortfolio = async (req: Request, res: Response) => {
-    const userId = req.query.userId as string;
+    const userId = req.params.userId as string;
     try {
         const cortfolio = await Cortfolio.findOne({ userId });
         res.status(200).json(cortfolio);

@@ -5,6 +5,7 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 import UserRouter from "./router/UserRouter";
 import cors from "cors";
+import CortRouter from "./router/CortRouter";
 
 dotenv.config();
 
@@ -35,6 +36,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/", UserRouter);
+app.use("/cort", CortRouter);
 
 app.get("/", (req, res) => {
     res.send("서버 open");
