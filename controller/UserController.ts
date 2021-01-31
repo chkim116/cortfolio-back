@@ -218,3 +218,14 @@ export const recentUpdate = async (req: Request, res: Response) => {
         res.status(400).json("오류");
     }
 };
+
+export const loadAnotherGit = async (req: Request, res: Response) => {
+    const userId = req.params.userId;
+    try {
+        const anotherUserGit = await User.findOne({ userId });
+        res.status(200).json(anotherUserGit);
+    } catch (err) {
+        console.error(err);
+        res.status(400).json(err);
+    }
+};

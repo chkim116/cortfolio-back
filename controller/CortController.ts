@@ -1,3 +1,4 @@
+//  todo : multer location 사용해서 유저 코트폴리오 img 가져오기.
 import { Request, Response } from "express";
 import Cortfolio from "../model/Cortfolio";
 
